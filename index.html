@@ -63,7 +63,10 @@
     .wk-grd{display:grid;grid-template-rows:repeat(7,1fr);gap:var(--gap);flex:1;padding:4px 0}
     .wk-lbl{font-size:11px;color:#444;display:flex;align-items:center;justify-content:flex-end;visibility:hidden;line-height:1}
     .wk-lbl:nth-child(2n){visibility:visible}
-    .yr-cht{flex:1;display:flex;flex-direction:column;min-width:0;overflow:visible}
+    
+    /* 修改：增加底部内边距，防止悬停放大时被遮挡 */
+    .yr-cht{flex:1;display:flex;flex-direction:column;min-width:0;overflow:visible;padding-bottom:5px}
+    
     .m-row{display:grid;grid-template-columns:repeat(53,1fr);gap:var(--gap);width:100%;height:var(--m-h);margin-bottom:var(--gap);flex-shrink:0}
     .m-nm{font-size:12px;color:var(--t-sub);grid-column:span 3;white-space:nowrap;font-weight:600;line-height:var(--m-h);position:relative;left:-1px}
     .b-grd{display:grid;grid-template-columns:repeat(53,1fr);grid-template-rows:repeat(7,1fr);gap:var(--gap);width:100%;grid-auto-flow:column;padding:4px}
@@ -207,7 +210,7 @@
       <a href="pdf.html" class="d-a"><span class="d-ic">📄</span><span class="d-tx">PDF转图</span></a>
       <a href="diff.html" class="d-a"><span class="d-ic">📝</span><span class="d-tx">文本校对</span></a>
       <a href="date.html" class="d-a"><span class="d-ic">📅</span><span class="d-tx">日期计算</span></a>
-      <a href="convert.html" class="d-a"><span class="d-ic">💰</span><span class="d-tx">大写转换</span></a>
+      <a href="convert.html" class="d-a"><span class="d-ic">💰</span><span class="d-tx">大小写转换</span></a>
     </div>
   </div>
 
@@ -396,7 +399,6 @@
         setInterval(rC,HOUR);
       }
       
-      // 立即执行以加快首屏时间
       upd();
       document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
     })();
