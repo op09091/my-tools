@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini 对话提取工具</title>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --bg-color: #f5f5f5;
+            --border-color: #ddd;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background-color: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background-color: #f0f8ff;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background-color: #e3f2fd;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: #666;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .action-buttons button:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        .action-buttons button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-extract {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-copy {
+            background-color: #28a745;
+            color: white;
+            display: none;
+        }
+
+        .btn-download {
+            background-color: #17a2b8;
+            color: white;
+            display: none;
+        }
+
+        .btn-clear {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .result-area {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            background: #fafafa;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .conversation {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            background: white;
+            border: 2px solid var(--border-color);
+        }
+
+        .message.user .message-avatar {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .message-content {
+            flex: 1;
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .message-role {
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .message.user .message-role {
+            color: var(--primary);
+        }
+
+        .message-text {
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
+
+        .stats {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .stats.show {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #f5c6cb;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #c3e6cb;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">
+            <span>💬</span>
+            <span>Gemini 对话提取工具</span>
+        </div>
+
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">点击或拖拽文件到这里</div>
+        </div>
+        <input type="file" id="fileInput" onchange="handleFile(this.files[0])">
+
+        <div id="selectedFile" style="display: none; margin-bottom: 20px;">
+            <div style="background: #f8f9fa; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">📄</span>
+                    <span id="fileName" style="color: #333; font-size: 14px;"></span>
+                    <span id="fileSize" style="color: #999; font-size: 12px;"></span>
+                </div>
+                <button onclick="removeFile()" style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 4px 12px; cursor: pointer; font-size: 13px;">删除</button>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn-extract" id="extractBtn" onclick="extractConversation()" disabled>🔍 提取对话</button>
+            <button class="btn-copy" id="copyBtn" onclick="copyToClipboard()">📋 复制</button>
+            <button class="btn-download" id="downloadBtn" onclick="downloadTxt()">💾 下载TXT</button>
+            <button class="btn-clear" onclick="clearAll()">🗑️ 清空</button>
+        </div>
+
+        <div class="result-area" id="resultArea">
+            <div class="empty-state">等待上传文件</div>
+        </div>
+    </div>
+
+    <script>
+        let jsonData = null;
+        let conversationText = '';
+        let messages = [];
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const resultArea = document.getElementById('resultArea');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const text = e.target.result;
+                    jsonData = JSON.parse(text);
+                    document.getElementById('extractBtn').disabled = false;
+                    uploadArea.querySelector('.upload-text').textContent = '点击或拖拽文件到这里';
+                    
+                    document.getElementById('selectedFile').style.display = 'block';
+                    document.getElementById('fileName').textContent = file.name;
+                    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                    
+                    showSuccess('文件加载成功');
+                } catch (error) {
+                    showError('无法解析JSON格式');
+                    jsonData = null;
+                    document.getElementById('extractBtn').disabled = true;
+                }
+            };
+            reader.onerror = () => {
+                showError('文件读取失败');
+                jsonData = null;
+            };
+            reader.readAsText(file);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+        }
+
+        function removeFile() {
+            jsonData = null;
+            fileInput.value = '';
+            document.getElementById('selectedFile').style.display = 'none';
+            document.getElementById('extractBtn').disabled = true;
+            document.getElementById('copyBtn').style.display = 'none';
+            document.getElementById('downloadBtn').style.display = 'none';
+            resultArea.innerHTML = '<div class="empty-state">等待上传文件</div>';
+        }
+
+        function extractConversation() {
+            if (!jsonData) return;
+
+            try {
+                const chunks = jsonData?.chunkedPrompt?.chunks;
+                
+                if (!chunks || !Array.isArray(chunks) || chunks.length === 0) {
+                    showError('无法找到对话数据');
+                    return;
+                }
+
+                messages = [];
+                conversationText = '';
+
+                for (const chunk of chunks) {
+                    const role = (chunk.role || 'Unknown').toUpperCase();
+                    let content = '';
+
+                    const parts = chunk.parts;
+
+                    if (parts && Array.isArray(parts)) {
+                        for (const part of parts) {
+                            const isThought = part.thought || part.isThought || false;
+                            if (!isThought) {
+                                content += part.text || '';
+                            }
+                        }
+                    } else {
+                        content = chunk.text || '';
+                    }
+
+                    if (content.trim()) {
+                        messages.push({ role, content: content.trim() });
+                        conversationText += `[${role}]:\n${content.trim()}\n\n${'='.repeat(50)}\n\n`;
+                    }
+                }
+
+                if (messages.length === 0) {
+                    showError('未找到有效对话内容');
+                    return;
+                }
+
+                displayConversation();
+                document.getElementById('copyBtn').style.display = 'inline-block';
+                document.getElementById('downloadBtn').style.display = 'inline-block';
+
+            } catch (error) {
+                showError('提取失败');
+            }
+        }
+
+        function displayConversation() {
+            resultArea.innerHTML = '';
+
+            const stats = document.createElement('div');
+            stats.className = 'stats show';
+            
+            const userCount = messages.filter(m => m.role === 'USER').length;
+            const modelCount = messages.filter(m => m.role === 'MODEL').length;
+            
+            stats.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${messages.length}</div>
+                    <div class="stat-label">对话轮次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${userCount}</div>
+                    <div class="stat-label">用户消息</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${modelCount}</div>
+                    <div class="stat-label">模型回复</div>
+                </div>
+            `;
+            resultArea.appendChild(stats);
+
+            const conversation = document.createElement('div');
+            conversation.className = 'conversation';
+
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.role.toLowerCase()}`;
+                
+                const avatar = msg.role === 'USER' ? '👤' : '🤖';
+                
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">${avatar}</div>
+                    <div class="message-content">
+                        <div class="message-role">${msg.role}</div>
+                        <div class="message-text">${escapeHtml(msg.content)}</div>
+                    </div>
+                `;
+                
+                conversation.appendChild(messageDiv);
+            });
+
+            resultArea.appendChild(conversation);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            resultArea.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            const existing = resultArea.querySelector('.success-message');
+            if (existing) existing.remove();
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            resultArea.insertBefore(successDiv, resultArea.firstChild);
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(conversationText).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ 已复制';
+                setTimeout(() => btn.textContent = originalText, 1500);
+            });
+        }
+
+        function downloadTxt() {
+            const blob = new Blob([conversationText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'gemini_conversation.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearAll() {
+            jsonData = null;
+            conversationText = '';
+            messages = [];
+            fileInput.value = '';
+            document.getElementById('extractBtn').disabled = true;
+            document.getElementById('copyBtn').style.display = 'none';
+            document.getElementById('downloadBtn').style.display = 'none';
+            document.getElementById('selectedFile').style.display = 'none';
+            uploadArea.querySelector('.upload-text').textContent = '点击或拖拽文件到这里';
+            resultArea.innerHTML = '<div class="empty-state">等待上传文件</div>';
+        }
+    </script>
+</body>
+</html>

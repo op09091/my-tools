@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>PDF2JPEG</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --bg-color: #f5f5f5;
+            --border-color: #ddd;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            /* 手机端防止垂直居中截断 */
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            width: 100%;
+            max-width: 650px;
+        }
+
+        .title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: bold;
+        }
+
+        .title-icon {
+            font-size: 24px;
+        }
+
+        .form-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+
+        .form-label {
+            width: 120px;
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .form-input {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+            min-width: 0;
+            /* 防止Flex子项溢出 */
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            background: #fcfcfc;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        input[type="text"]:disabled {
+            background-color: #f0f2f5;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #f8f9fa;
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f5f5f5;
+        }
+
+        .slider-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #ddd 0%, #ddd 100%);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        /* 增大滑块触摸区域 */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            margin-top: -9px;
+            /* 垂直居中 */
+        }
+
+        /* 配合 webkit thumb 的 margin-top */
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider-value {
+            min-width: 45px;
+            text-align: right;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .convert-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 0 25px 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 86, 179, 0.2);
+        }
+
+        .convert-btn:hover:not(:disabled) {
+            background-color: #004494;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .output-area {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #fafafa;
+        }
+
+        .output-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ddd;
+        }
+
+        .output-content {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .status-message {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-info {
+            background-color: #e2f0fb;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary);
+            transition: width 0.3s;
+            border-radius: 5px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .preview-item {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s;
+        }
+
+        .preview-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border: 1px solid #eee;
+        }
+
+        .preview-item button {
+            width: 100%;
+            padding: 6px;
+            font-size: 12px;
+        }
+
+        /* --- 📱 移动端适配核心代码 --- */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px 15px;
+            }
+
+            .title {
+                font-size: 18px;
+                margin-bottom: 20px;
+            }
+
+            /* 强制换行布局 */
+            .form-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+
+            .form-label {
+                width: 100%;
+                margin-bottom: 0;
+                font-size: 14px;
+            }
+
+            /* 输入框区域调整 */
+            .form-input {
+                flex-wrap: wrap;
+                /* 允许按钮换行 */
+            }
+
+            .form-input input[type="text"] {
+                width: 100%;
+                /* 输入框独占一行 */
+                order: 1;
+            }
+
+            .form-input button {
+                flex: 1;
+                /* 按钮平分宽度 */
+                padding: 10px;
+                order: 2;
+            }
+
+            /* 滑块区域 */
+            .slider-container {
+                width: 100%;
+                padding: 5px 0;
+            }
+
+            /* 开始按钮 */
+            .convert-btn {
+                margin-top: 10px;
+            }
+
+            /* 预览网格适配 */
+            .preview-grid {
+                grid-template-columns: repeat(2, 1fr);
+                /* 手机端两列 */
+                gap: 10px;
+            }
+
+            .output-area {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="title">
+            <span class="title-icon">📄</span>
+            <span>PDF 转图片工具</span>
+        </div>
+
+        <div class="form-row">
+            <label class="form-label">选择 PDF 文件</label>
+            <div class="form-input">
+                <input type="text" id="pdfFileName" readonly placeholder="未选择文件">
+                <button onclick="selectPDF()">📂 选择文件</button>
+                <button onclick="clearPDF()" style="color: #666;">✕ 清除</button>
+            </div>
+            <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(event)">
+        </div>
+
+        <div class="form-row">
+            <label class="form-label">清晰度 (DPI)</label>
+            <div class="slider-container">
+                <input type="range" id="dpiSlider" min="72" max="600" value="300" step="1"
+                    oninput="updateDPI(this.value)">
+                <span class="slider-value" id="dpiValue">300</span>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label class="form-label">图片质量 (%)</label>
+            <div class="slider-container">
+                <input type="range" id="qualitySlider" min="1" max="100" value="85" step="1"
+                    oninput="updateQuality(this.value)">
+                <span class="slider-value" id="qualityValue">85</span>
+            </div>
+        </div>
+
+        <button class="convert-btn" id="convertBtn" onclick="startConversion()" disabled>🔄 开始转换</button>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="output-area">
+            <div class="output-title">📋 转换日志与预览</div>
+            <div class="output-content" id="outputLog">等待选择 PDF 文件...</div>
+            <div class="preview-grid" id="previewGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        // 设置 Worker 路径
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let pdfFile = null;
+        let pdfDoc = null;
+        let convertedImages = [];
+
+        function selectPDF() {
+            document.getElementById('fileInput').click();
+        }
+
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf') {
+                addLog('❌ 错误：请选择有效的 PDF 文件', 'error');
+                return;
+            }
+
+            pdfFile = file;
+            document.getElementById('pdfFileName').value = file.name;
+            document.getElementById('convertBtn').disabled = false;
+
+            clearLog();
+            addLog(`✅ 已加载文件: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, 'info');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                addLog(`📄 PDF 解析成功，共 ${pdfDoc.numPages} 页`, 'success');
+            } catch (error) {
+                addLog(`❌ PDF 加载失败: ${error.message}`, 'error');
+                pdfDoc = null;
+            }
+        }
+
+        function clearPDF() {
+            pdfFile = null;
+            pdfDoc = null;
+            document.getElementById('pdfFileName').value = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('convertBtn').disabled = true;
+            clearLog();
+            document.getElementById('previewGrid').innerHTML = '';
+            convertedImages = [];
+            document.getElementById('progressBar').style.display = 'none';
+        }
+
+        function updateDPI(value) {
+            document.getElementById('dpiValue').textContent = value;
+            updateSliderGradient('dpiSlider', value, 72, 600);
+        }
+
+        function updateQuality(value) {
+            document.getElementById('qualityValue').textContent = value;
+            updateSliderGradient('qualitySlider', value, 1, 100);
+        }
+
+        function updateSliderGradient(sliderId, value, min, max) {
+            const slider = document.getElementById(sliderId);
+            const percentage = ((value - min) / (max - min)) * 100;
+            slider.style.background = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percentage}%, #ddd ${percentage}%, #ddd 100%)`;
+        }
+
+        async function startConversion() {
+            if (!pdfDoc) {
+                addLog('⚠️ 请先选择 PDF 文件', 'error');
+                return;
+            }
+
+            const dpi = parseInt(document.getElementById('dpiSlider').value);
+            const quality = parseInt(document.getElementById('qualitySlider').value) / 100;
+            const convertBtn = document.getElementById('convertBtn');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+
+            convertBtn.disabled = true;
+            convertBtn.textContent = '⏳ 正在转换...';
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+
+            clearLog();
+            document.getElementById('previewGrid').innerHTML = '';
+            convertedImages = [];
+
+            addLog('🚀 开始转换...', 'info');
+            addLog(`⚙️ 设置: DPI=${dpi}, 质量=${Math.round(quality * 100)}%`, 'info');
+
+            try {
+                const scale = dpi / 72;
+
+                for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                    const page = await pdfDoc.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: scale });
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    const blob = await new Promise(resolve => {
+                        canvas.toBlob(resolve, 'image/jpeg', quality);
+                    });
+
+                    const fileName = `${pdfFile.name.replace('.pdf', '')}_page_${pageNum}.jpg`;
+                    convertedImages.push({ blob, fileName });
+
+                    const url = URL.createObjectURL(blob);
+                    addPreview(url, fileName, pageNum);
+
+                    const progress = (pageNum / pdfDoc.numPages) * 100;
+                    progressFill.style.width = progress + '%';
+                    addLog(`📸 第 ${pageNum}/${pdfDoc.numPages} 页转换完成`);
+                }
+
+                addLog(`\n🎉 全部完成！共生成 ${convertedImages.length} 张图片`, 'success');
+
+                if (convertedImages.length > 1) {
+                    addDownloadAllButton();
+                }
+
+            } catch (error) {
+                addLog(`❌ 转换失败: ${error.message}`, 'error');
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.textContent = '🔄 开始转换';
+                // 保持进度条显示表示完成状态
+            }
+        }
+
+        function addPreview(url, fileName, pageNum) {
+            const previewGrid = document.getElementById('previewGrid');
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.innerHTML = `
+                <img src="${url}" alt="Page ${pageNum}">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">第 ${pageNum} 页</div>
+                <button onclick="downloadImage('${url}', '${fileName}')">💾 下载</button>
+            `;
+            previewGrid.appendChild(item);
+        }
+
+        function downloadImage(url, fileName) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+        }
+
+        function addDownloadAllButton() {
+            const outputArea = document.querySelector('.output-area');
+            let existingBtn = document.getElementById('downloadAllBtn');
+            if (existingBtn) existingBtn.remove();
+
+            const btn = document.createElement('button');
+            btn.id = 'downloadAllBtn';
+            btn.textContent = '📦 打包下载全部图片 (ZIP)';
+            btn.style.width = '100%';
+            btn.style.marginTop = '15px';
+            btn.style.padding = '12px';
+            btn.style.backgroundColor = '#28a745';
+            btn.style.color = 'white';
+            btn.style.border = 'none';
+            btn.style.fontWeight = 'bold';
+            btn.style.borderRadius = '6px';
+            btn.onclick = downloadAllImages;
+
+            // 插入到预览网格之前
+            const previewGrid = document.getElementById('previewGrid');
+            outputArea.insertBefore(btn, previewGrid);
+        }
+
+        async function downloadAllImages() {
+            const btn = document.getElementById('downloadAllBtn');
+            btn.disabled = true;
+            btn.textContent = '📦 正在打包...';
+
+            try {
+                const zip = new JSZip();
+
+                convertedImages.forEach(({ blob, fileName }) => {
+                    zip.file(fileName, blob);
+                });
+
+                addLog('📦 正在生成 ZIP 压缩包...', 'info');
+                const zipBlob = await zip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+
+                const zipFileName = `${pdfFile.name.replace('.pdf', '')}_images.zip`;
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = zipFileName;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                addLog(`✅ 已下载: ${zipFileName}`, 'success');
+            } catch (error) {
+                addLog(`❌ 打包失败: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📦 打包下载全部图片 (ZIP)';
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('outputLog').innerHTML = '';
+            const dlBtn = document.getElementById('downloadAllBtn');
+            if (dlBtn) dlBtn.remove();
+        }
+
+        function addLog(message, type = '') {
+            const outputLog = document.getElementById('outputLog');
+            if (type) {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = `status-message status-${type}`;
+                statusDiv.textContent = message;
+                outputLog.appendChild(statusDiv);
+            } else {
+                const textNode = document.createElement('div');
+                textNode.textContent = message;
+                textNode.style.marginBottom = '4px';
+                outputLog.appendChild(textNode);
+            }
+            outputLog.scrollTop = outputLog.scrollHeight;
+        }
+
+        updateSliderGradient('dpiSlider', 300, 72, 600);
+        updateSliderGradient('qualitySlider', 85, 1, 100);
+    </script>
+</body>
+
+</html>

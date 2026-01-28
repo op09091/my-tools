@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日期计算工具</title>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --bg-color: #f5f5f5;
+            --border-color: #ddd;
+            --progress-bg: #e1e4e8;
+            --progress-fill: #28a745;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        .title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .progress-section {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .progress-item {
+            margin-bottom: 15px;
+        }
+
+        .progress-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .progress-label {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .progress-value {
+            color: #666;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: var(--progress-bg);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--progress-fill);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: bold;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        input[type="date"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input[type="date"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        button.btn-primary {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button.btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .result-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .result-value {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        .big-result {
+            text-align: center;
+            padding: 30px;
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .unit {
+            font-size: 20px;
+            color: #666;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">
+            <span>📅</span>
+            <span>日期计算工具</span>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">🗓️ 今年进度</span>
+                    <span class="progress-value" id="year-text">-</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="year-progress"></div>
+                </div>
+            </div>
+
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">📆 本月进度</span>
+                    <span class="progress-value" id="month-text">-</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="month-progress"></div>
+                </div>
+            </div>
+
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">📅 本周进度</span>
+                    <span class="progress-value" id="week-text">-</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="week-progress"></div>
+                </div>
+            </div>
+
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span class="progress-label">⏰ 今日进度</span>
+                    <span class="progress-value" id="day-text">-</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="day-progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(0)">日期间隔</button>
+            <button class="tab" onclick="switchTab(1)">日期推算</button>
+            <button class="tab" onclick="switchTab(2)">周数查询</button>
+        </div>
+
+        <div class="tab-content active" id="tab0">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">开始日期</label>
+                    <input type="date" id="interval-start">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">结束日期</label>
+                    <input type="date" id="interval-end">
+                </div>
+            </div>
+            <button class="btn-primary" onclick="calculateInterval()">计算间隔</button>
+            <div class="result-box" id="interval-result" style="display:none;">
+                <div class="result-title">📊 日期间隔结果</div>
+                <div class="result-item">
+                    <span class="result-label">总天数</span>
+                    <span class="result-value" id="interval-days">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">换算（年月日）</span>
+                    <span class="result-value" id="interval-ymd">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">换算（周天）</span>
+                    <span class="result-value" id="interval-weeks">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">总小时数</span>
+                    <span class="result-value" id="interval-hours">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">总分钟数</span>
+                    <span class="result-value" id="interval-minutes">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">总秒数</span>
+                    <span class="result-value" id="interval-seconds">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab1">
+            <div class="form-group">
+                <label class="form-label">起始日期</label>
+                <input type="date" id="calc-base">
+            </div>
+            <div class="form-group">
+                <label class="form-label">操作类型</label>
+                <select id="calc-operation">
+                    <option value="add">增加</option>
+                    <option value="subtract">减少</option>
+                </select>
+            </div>
+            <div class="grid-3">
+                <div class="form-group">
+                    <label class="form-label">年</label>
+                    <input type="number" id="calc-years" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">月</label>
+                    <input type="number" id="calc-months" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">天</label>
+                    <input type="number" id="calc-days" value="0" min="0">
+                </div>
+            </div>
+            <button class="btn-primary" onclick="calculateDate()">计算日期</button>
+            <div class="result-box" id="calc-result" style="display:none;">
+                <div class="result-title">📆 计算结果</div>
+                <div class="big-result" id="calc-date">-</div>
+                <div style="text-align: center; color: #666; margin-top: -20px;">
+                    <span id="calc-weekday">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab2">
+            <div class="form-group">
+                <label class="form-label">选择日期</label>
+                <input type="date" id="weeknum-date">
+            </div>
+            <button class="btn-primary" onclick="queryWeekNumber()">查询周数</button>
+            <div class="result-box" id="weeknum-result" style="display:none;">
+                <div class="result-title">📅 周数查询结果</div>
+                <div class="result-item">
+                    <span class="result-label">星期</span>
+                    <span class="result-value" id="weeknum-day">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">本年第几周</span>
+                    <span class="result-value" id="weeknum-year">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">本年第几天</span>
+                    <span class="result-value" id="weeknum-dayofyear">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">本月第几周</span>
+                    <span class="result-value" id="weeknum-month">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">距离年底</span>
+                    <span class="result-value" id="weeknum-remain">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('interval-start').value = today;
+        document.getElementById('interval-end').value = today;
+        document.getElementById('calc-base').value = today;
+        document.getElementById('weeknum-date').value = today;
+
+        function updateProgress() {
+            const now = new Date();
+            
+            const yearStart = new Date(now.getFullYear(), 0, 1);
+            const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
+            const yearTotal = yearEnd - yearStart;
+            const yearPassed = now - yearStart;
+            const yearPercent = (yearPassed / yearTotal * 100).toFixed(2);
+            document.getElementById('year-progress').style.width = yearPercent + '%';
+            document.getElementById('year-text').textContent = `${yearPercent}% (已过 ${Math.floor(yearPassed / (1000 * 60 * 60 * 24))} 天)`;
+            
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const monthTotal = monthEnd - monthStart;
+            const monthPassed = now - monthStart;
+            const monthPercent = (monthPassed / monthTotal * 100).toFixed(2);
+            document.getElementById('month-progress').style.width = monthPercent + '%';
+            document.getElementById('month-text').textContent = `${monthPercent}% (已过 ${Math.floor(monthPassed / (1000 * 60 * 60 * 24))} 天)`;
+            
+            const weekDay = now.getDay();
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - (weekDay === 0 ? 6 : weekDay - 1));
+            weekStart.setHours(0, 0, 0, 0);
+            const weekTotal = 7 * 24 * 60 * 60 * 1000;
+            const weekPassed = now - weekStart;
+            const weekPercent = (weekPassed / weekTotal * 100).toFixed(2);
+            document.getElementById('week-progress').style.width = weekPercent + '%';
+            document.getElementById('week-text').textContent = `${weekPercent}% (已过 ${Math.floor(weekPassed / (1000 * 60 * 60 * 24))} 天)`;
+            
+            const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            const dayTotal = 24 * 60 * 60 * 1000;
+            const dayPassed = now - dayStart;
+            const dayPercent = (dayPassed / dayTotal * 100).toFixed(2);
+            document.getElementById('day-progress').style.width = dayPercent + '%';
+            document.getElementById('day-text').textContent = `${dayPercent}% (已过 ${Math.floor(dayPassed / (1000 * 60 * 60))} 小时)`;
+        }
+
+        updateProgress();
+        setInterval(updateProgress, 60000);
+
+        function switchTab(index) {
+            document.querySelectorAll('.tab').forEach((tab, i) => {
+                tab.classList.toggle('active', i === index);
+            });
+            document.querySelectorAll('.tab-content').forEach((content, i) => {
+                content.classList.toggle('active', i === index);
+            });
+        }
+
+        function calculateInterval() {
+            const start = new Date(document.getElementById('interval-start').value);
+            const end = new Date(document.getElementById('interval-end').value);
+            
+            if (isNaN(start) || isNaN(end)) return;
+
+            let date1 = start < end ? start : end;
+            let date2 = start < end ? end : start;
+
+            const totalMs = date2 - date1;
+            const totalDays = Math.floor(totalMs / (1000 * 60 * 60 * 24));
+            
+            let years = date2.getFullYear() - date1.getFullYear();
+            let months = date2.getMonth() - date1.getMonth();
+            let days = date2.getDate() - date1.getDate();
+            
+            if (days < 0) {
+                months--;
+                const prevMonth = new Date(date2.getFullYear(), date2.getMonth(), 0);
+                days += prevMonth.getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+
+            const weeks = Math.floor(totalDays / 7);
+            const remainDays = totalDays % 7;
+            const hours = Math.floor(totalMs / (1000 * 60 * 60));
+            const minutes = Math.floor(totalMs / (1000 * 60));
+            const seconds = Math.floor(totalMs / 1000);
+
+            document.getElementById('interval-days').textContent = totalDays.toLocaleString() + ' 天';
+            document.getElementById('interval-ymd').textContent = `${years} 年 ${months} 个月 ${days} 天`;
+            document.getElementById('interval-weeks').textContent = `${weeks} 周 ${remainDays} 天`;
+            document.getElementById('interval-hours').textContent = hours.toLocaleString() + ' 小时';
+            document.getElementById('interval-minutes').textContent = minutes.toLocaleString() + ' 分钟';
+            document.getElementById('interval-seconds').textContent = seconds.toLocaleString() + ' 秒';
+            document.getElementById('interval-result').style.display = 'block';
+        }
+
+        function calculateDate() {
+            const base = new Date(document.getElementById('calc-base').value);
+            const operation = document.getElementById('calc-operation').value;
+            const years = parseInt(document.getElementById('calc-years').value) || 0;
+            const months = parseInt(document.getElementById('calc-months').value) || 0;
+            const days = parseInt(document.getElementById('calc-days').value) || 0;
+
+            if (isNaN(base)) return;
+
+            const result = new Date(base);
+            const multiplier = operation === 'add' ? 1 : -1;
+            
+            result.setFullYear(result.getFullYear() + years * multiplier);
+            result.setMonth(result.getMonth() + months * multiplier);
+            result.setDate(result.getDate() + days * multiplier);
+
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            
+            document.getElementById('calc-date').textContent = result.toLocaleDateString('zh-CN');
+            document.getElementById('calc-weekday').textContent = weekdays[result.getDay()];
+            document.getElementById('calc-result').style.display = 'block';
+        }
+
+        function queryWeekNumber() {
+            const date = new Date(document.getElementById('weeknum-date').value);
+            if (isNaN(date)) return;
+
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            
+            const startOfYear = new Date(date.getFullYear(), 0, 1);
+            const dayOfYear = Math.floor((date - startOfYear) / (1000 * 60 * 60 * 24)) + 1;
+            
+            const startDay = startOfYear.getDay();
+            const weekOfYear = Math.ceil((dayOfYear + startDay) / 7);
+            
+            const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+            const dayOfMonth = date.getDate();
+            const monthStartDay = startOfMonth.getDay();
+            const weekOfMonth = Math.ceil((dayOfMonth + monthStartDay) / 7);
+            
+            const endOfYear = new Date(date.getFullYear(), 11, 31);
+            const remainDays = Math.floor((endOfYear - date) / (1000 * 60 * 60 * 24));
+
+            document.getElementById('weeknum-day').textContent = weekdays[date.getDay()];
+            document.getElementById('weeknum-year').textContent = '第 ' + weekOfYear + ' 周';
+            document.getElementById('weeknum-dayofyear').textContent = '第 ' + dayOfYear + ' 天';
+            document.getElementById('weeknum-month').textContent = '第 ' + weekOfMonth + ' 周';
+            document.getElementById('weeknum-remain').textContent = remainDays + ' 天';
+            document.getElementById('weeknum-result').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

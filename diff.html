@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本校对工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --ins-bg: #d4edda;
+            --ins-color: #155724;
+            --del-bg: #f8d7da;
+            --del-color: #721c24;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: var(--bg-color);
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .container {
+            display: flex;
+            gap: 10px;
+            height: 32%;
+        }
+
+        .box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .box-header {
+            font-weight: bold;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        textarea {
+            flex: 1;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            resize: none;
+            padding: 6px;
+            font-family: "Consolas", monospace;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: opacity 0.2s;
+            font-size: 13px;
+        }
+
+        button.primary {
+            background-color: var(--primary);
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            margin-left: auto;
+            color: gray;
+            font-size: 0.85em;
+        }
+
+        #preview-box {
+            flex: 1;
+            overflow-y: auto;
+            font-family: "Consolas", monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            scroll-behavior: smooth;
+        }
+
+        span.diff {
+            cursor: pointer;
+            padding: 2px 0;
+            border-radius: 2px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        span.pending-insert {
+            background-color: var(--ins-bg);
+            color: var(--ins-color);
+            font-weight: bold;
+            border-bottom: 2px solid var(--ins-color);
+        }
+
+        span.pending-delete {
+            background-color: var(--del-bg);
+            color: var(--del-color);
+            text-decoration: line-through;
+            opacity: 0.8;
+        }
+
+        span.accepted-insert {
+            color: black;
+            background: transparent;
+            border: none;
+        }
+
+        span.accepted-delete {
+            display: none;
+        }
+
+        span.rejected-insert {
+            display: none;
+        }
+
+        span.rejected-delete {
+            color: black;
+            background: transparent;
+            text-decoration: none;
+        }
+
+        span.current-diff {
+            outline: 3px solid #ffc107;
+            outline-offset: 2px;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                outline-color: #ffc107;
+            }
+            50% {
+                outline-color: #ff9800;
+            }
+        }
+
+        .output-container {
+            height: 22%;
+        }
+
+        .tooltip {
+            position: fixed;
+            background: #333;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .nav-buttons button {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+
+        .nav-info {
+            font-size: 12px;
+            color: #666;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="box">
+            <div class="box-header">原始文本</div>
+            <textarea id="txtOrig" placeholder="粘贴原始文本..."></textarea>
+        </div>
+        <div class="box">
+            <div class="box-header">修订文本</div>
+            <textarea id="txtMod" placeholder="粘贴修改后的文本..."></textarea>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="primary" onclick="runCompare()">▶ 开始校对</button>
+        <button onclick="clearAll()">🗑 清空</button>
+        <div style="border-left: 1px solid #ccc; height: 16px; margin: 0 5px;"></div>
+        <div class="nav-buttons">
+            <button id="btnPrev" onclick="navigateDiff(-1)" disabled>⬆ 上一项</button>
+            <span class="nav-info" id="navInfo">0/0</span>
+            <button id="btnNext" onclick="navigateDiff(1)" disabled>⬇ 下一项</button>
+        </div>
+        <div style="border-left: 1px solid #ccc; height: 16px; margin: 0 5px;"></div>
+        <span style="font-size: 12px; color: #666;">
+            💡 <b>左键</b>接受 | <b>右键</b>拒绝
+        </span>
+        <div class="stats" id="statsLbl">就绪</div>
+    </div>
+
+    <div class="box" style="flex: 2; min-height: 180px;">
+        <div class="box-header">🔍 校对预览</div>
+        <div id="preview-box"></div>
+    </div>
+
+    <div class="box output-container">
+        <div class="box-header">
+            📤 最终结果
+            <button onclick="copyResult()" style="padding: 2px 8px; font-size: 12px;">📋 复制</button>
+        </div>
+        <textarea id="txtFinal" readonly style="background-color: #f4f4f4;"></textarea>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        let diffData = [];
+        let pendingCount = 0;
+        let diffIndices = [];
+        let currentDiffIndex = -1;
+
+        function runCompare() {
+            const t1 = document.getElementById('txtOrig').value;
+            const t2 = document.getElementById('txtMod').value;
+
+            if (!t1 && !t2) return;
+
+            const diffs = Diff.diffChars(t1, t2);
+
+            diffData = [];
+            pendingCount = 0;
+            diffIndices = [];
+            currentDiffIndex = -1;
+
+            const previewBox = document.getElementById('preview-box');
+            previewBox.innerHTML = '';
+
+            diffs.forEach((part, index) => {
+                const item = {
+                    id: index,
+                    value: part.value,
+                    type: part.added ? 'insert' : (part.removed ? 'delete' : 'equal'),
+                    status: 'pending'
+                };
+                diffData.push(item);
+
+                if (item.type === 'equal') {
+                    const span = document.createElement('span');
+                    span.textContent = item.value;
+                    previewBox.appendChild(span);
+                } else {
+                    diffIndices.push(index);
+                    pendingCount++;
+
+                    const span = document.createElement('span');
+                    span.textContent = item.value;
+                    span.className = `diff pending-${item.type}`;
+                    span.id = `diff-${index}`;
+
+                    span.onclick = () => handleAction(index, 'accepted');
+                    span.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        handleAction(index, 'rejected');
+                    };
+
+                    span.onmouseenter = (e) => showTooltip(e, "左键:接受 | 右键:拒绝");
+                    span.onmouseleave = () => hideTooltip();
+
+                    previewBox.appendChild(span);
+                }
+            });
+
+            updateStats();
+            updateNavButtons();
+            generateFinal();
+        }
+
+        function handleAction(id, action) {
+            const item = diffData[id];
+            if (item.status === action) return;
+
+            if (item.status === 'pending') pendingCount--;
+
+            item.status = action;
+
+            const span = document.getElementById(`diff-${id}`);
+            if (span) {
+                span.className = `diff ${action}-${item.type}`;
+                span.onmouseenter = null;
+            }
+
+            updateStats();
+            generateFinal();
+        }
+
+        function navigateDiff(direction) {
+            if (diffIndices.length === 0) return;
+
+            currentDiffIndex += direction;
+
+            if (currentDiffIndex < 0) currentDiffIndex = 0;
+            if (currentDiffIndex >= diffIndices.length) currentDiffIndex = diffIndices.length - 1;
+
+            const targetId = diffIndices[currentDiffIndex];
+            const targetSpan = document.getElementById(`diff-${targetId}`);
+
+            if (targetSpan) {
+                document.querySelectorAll('.current-diff').forEach(el => {
+                    el.classList.remove('current-diff');
+                });
+
+                targetSpan.classList.add('current-diff');
+                targetSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            updateNavButtons();
+        }
+
+        function updateNavButtons() {
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const navInfo = document.getElementById('navInfo');
+
+            if (diffIndices.length === 0) {
+                btnPrev.disabled = true;
+                btnNext.disabled = true;
+                navInfo.textContent = '0/0';
+            } else {
+                btnPrev.disabled = currentDiffIndex <= 0;
+                btnNext.disabled = currentDiffIndex >= diffIndices.length - 1;
+                navInfo.textContent = `${currentDiffIndex + 1}/${diffIndices.length}`;
+            }
+        }
+
+        function generateFinal() {
+            let result = "";
+            diffData.forEach(item => {
+                if (item.type === 'equal') {
+                    result += item.value;
+                } else if (item.type === 'insert') {
+                    if (item.status === 'accepted' || item.status === 'pending') {
+                        result += item.value;
+                    }
+                } else if (item.type === 'delete') {
+                    if (item.status === 'rejected') {
+                        result += item.value;
+                    }
+                }
+            });
+            document.getElementById('txtFinal').value = result;
+        }
+
+        function updateStats() {
+            const lbl = document.getElementById('statsLbl');
+            const totalDiffs = diffData.filter(x => x.type !== 'equal').length;
+
+            if (pendingCount === 0 && totalDiffs > 0) {
+                lbl.textContent = `发现 ${totalDiffs} 处差异 | ✅ 全部处理完毕`;
+                lbl.style.color = "green";
+            } else {
+                lbl.textContent = `发现 ${totalDiffs} 处差异 | 待处理: ${pendingCount}`;
+                lbl.style.color = pendingCount > 0 ? "#d9534f" : "gray";
+            }
+        }
+
+        function clearAll() {
+            document.getElementById('txtOrig').value = '';
+            document.getElementById('txtMod').value = '';
+            document.getElementById('preview-box').innerHTML = '';
+            document.getElementById('txtFinal').value = '';
+            document.getElementById('statsLbl').textContent = '就绪';
+            diffData = [];
+            diffIndices = [];
+            currentDiffIndex = -1;
+            updateNavButtons();
+        }
+
+        function copyResult() {
+            const finalTxt = document.getElementById('txtFinal');
+            finalTxt.select();
+            document.execCommand('copy');
+
+            const btn = document.querySelector('.output-container button');
+            const originalText = btn.textContent;
+            btn.textContent = "✅ 已复制";
+            setTimeout(() => btn.textContent = originalText, 1500);
+        }
+
+        const tooltip = document.getElementById('tooltip');
+        function showTooltip(e, text) {
+            tooltip.textContent = text;
+            tooltip.style.display = 'block';
+            tooltip.style.left = e.pageX + 10 + 'px';
+            tooltip.style.top = e.pageY + 10 + 'px';
+        }
+
+        function hideTooltip() {
+            tooltip.style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
