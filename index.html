@@ -19,7 +19,9 @@
     .s-inp{flex:1;border:0;outline:0;padding:0 15px;font-size:15px;background:0 0;height:46px;min-width:0}
     .s-btn{width:46px;height:46px;border-radius:50%;border:1px solid #fff;background:linear-gradient(145deg,#f0f2f5,#e6e8eb);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s}
     .s-btn:active{transform:scale(.95)}
-    .grid{display:grid;width:100%;max-width:1100px;gap:20px;grid-template-columns:repeat(3,1fr);grid-template-rows:320px auto;grid-template-areas:"progress time calendar" "year year year"}
+    
+    .grid{display:grid;width:100%;max-width:1100px;gap:20px;grid-template-columns:repeat(3,1fr);grid-template-rows:minmax(320px, auto) auto;grid-template-areas:"progress time calendar" "year year year"}
+    
     .card{background:var(--card);border-radius:var(--rad);padding:24px;box-shadow:var(--shd);display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.8);width:100%;position:relative}
     .c-tit,.p-info{font-size:13px;font-weight:700;color:var(--t-sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:15px;display:flex;justify-content:space-between}
     .c-tit span:last-child,.p-info span:last-child{color:var(--t-main);font-weight:800}
@@ -56,17 +58,16 @@
     .c-it.today .c-d,.c-it.today .c-l{color:#fff!important}
     .c-it.today .tg-r{background:#fff;color:var(--m-blu)}.c-it.today .tg-w{background:rgba(255,255,255,.5);color:var(--m-blu)}
     .c-it:hover:not(.today):not(.oth){background:#f4f6f8;transform:scale(1.05)}
-    .a-yr{grid-area:year;min-height:160px;padding-bottom:25px;contain:content;content-visibility:auto}
+    
+    .a-yr{grid-area:year;min-height:160px;padding-bottom:25px}
+    
     .yr-wrp{display:flex;width:100%;align-items:stretch}
     .yr-wks{display:flex;flex-direction:column;margin-right:12px;flex-shrink:0}
     .wk-blk{height:var(--m-h);margin-bottom:var(--gap);flex-shrink:0}
     .wk-grd{display:grid;grid-template-rows:repeat(7,1fr);gap:var(--gap);flex:1;padding:4px 0}
     .wk-lbl{font-size:11px;color:#444;display:flex;align-items:center;justify-content:flex-end;visibility:hidden;line-height:1}
     .wk-lbl:nth-child(2n){visibility:visible}
-    
-    /* 修改：增加底部内边距，防止悬停放大时被遮挡 */
     .yr-cht{flex:1;display:flex;flex-direction:column;min-width:0;overflow:visible;padding-bottom:5px}
-    
     .m-row{display:grid;grid-template-columns:repeat(53,1fr);gap:var(--gap);width:100%;height:var(--m-h);margin-bottom:var(--gap);flex-shrink:0}
     .m-nm{font-size:12px;color:var(--t-sub);grid-column:span 3;white-space:nowrap;font-weight:600;line-height:var(--m-h);position:relative;left:-1px}
     .b-grd{display:grid;grid-template-columns:repeat(53,1fr);grid-template-rows:repeat(7,1fr);gap:var(--gap);width:100%;grid-auto-flow:column;padding:4px}
@@ -210,7 +211,7 @@
       <a href="pdf.html" class="d-a"><span class="d-ic">📄</span><span class="d-tx">PDF转图</span></a>
       <a href="diff.html" class="d-a"><span class="d-ic">📝</span><span class="d-tx">文本校对</span></a>
       <a href="date.html" class="d-a"><span class="d-ic">📅</span><span class="d-tx">日期计算</span></a>
-      <a href="convert.html" class="d-a"><span class="d-ic">💰</span><span class="d-tx">大小写转换</span></a>
+      <a href="convert.html" class="d-a"><span class="d-ic">💰</span><span class="d-tx">大写转换</span></a>
     </div>
   </div>
 
