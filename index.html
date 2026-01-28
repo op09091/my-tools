@@ -72,18 +72,26 @@
     .b:hover{transform:scale(1.5);border:1px solid rgba(0,0,0,.2);z-index:10;border-radius:2px}
 
     .dock{position:fixed;bottom:30px;right:30px;display:flex;flex-direction:column-reverse;align-items:end;z-index:99}
-    .dock-btn{width:50px;height:50px;border-radius:50%;background:var(--card);box-shadow:0 8px 30px rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;transition:.3s;color:var(--t-main);border:1px solid rgba(255,255,255,0.8)}
-    .dock:hover .dock-btn{transform:rotate(90deg);background:var(--t-main);color:#fff;border-color:transparent}
     
-    /* 关键修改：bottom改为50px（紧贴按钮），并用padding-bottom填充10px间隙 */
+    .dock-btn{
+      width:50px;height:50px;border-radius:50%;
+      background:rgba(255,255,255,0.85);
+      backdrop-filter:blur(10px);
+      box-shadow:0 8px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+      border:1px solid rgba(255,255,255,0.5);
+      display:flex;align-items:center;justify-content:center;
+      font-size:24px;cursor:pointer;transition:.3s;color:var(--t-main);
+    }
+    .dock:hover .dock-btn{transform:rotate(90deg);background:#fff;box-shadow:0 8px 25px rgba(0,0,0,0.15)}
+    
     .dock-list{
         position:absolute; 
-        bottom:50px; /* 紧贴按钮顶部 */
+        bottom:50px; 
         right:0;
         display:flex; 
         flex-direction:column-reverse; 
         gap:10px;
-        padding-bottom:10px; /* 增加透明内边距，确保鼠标路径连续 */
+        padding-bottom:10px;
         opacity:0; 
         visibility:hidden; 
         transform:translateY(20px);
@@ -91,12 +99,27 @@
         pointer-events:none;
         align-items:flex-end;
     }
-    
     .dock:hover .dock-list{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto}
     
-    .d-a{text-decoration:none;display:flex;align-items:center;gap:12px;background:var(--card);padding:10px 16px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.05);color:var(--t-sub);transition:.2s;min-width:120px;white-space:nowrap;opacity:0;transform:translateY(10px)}
+    .d-a{
+      text-decoration:none;display:flex;align-items:center;gap:12px;
+      background:rgba(255,255,255,0.9);
+      backdrop-filter:blur(12px);
+      padding:12px 18px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.5);
+      box-shadow:0 4px 15px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5);
+      color:var(--t-sub);transition:all .2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      min-width:120px;white-space:nowrap;opacity:0;transform:translateY(10px);
+    }
     .dock:hover .d-a{opacity:1;transform:translateY(0)}
-    .d-a:hover{color:var(--t-main);transform:translateX(-5px);background:#fff}
+    .d-a:hover{
+      color:var(--t-main);
+      transform:translateX(-5px) scale(1.02);
+      background:#fff;
+      box-shadow:0 8px 25px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(255,255,255,0.8);
+      border-color:transparent;
+    }
     .d-ic{font-size:18px;margin-bottom:0}
     .d-tx{font-size:13px;font-weight:600}
     
@@ -144,7 +167,7 @@
         <div class="sep"></div>
         <span id="ls" style="font-size:12px;opacity:.8">--</span>
       </div>
-      <div class="t-big" id="ck">00<span class="t-col">:</span>00</div>
+      <div class="t-big" id="ck" style="opacity:0;transition:opacity 0.2s">00:00</div>
       <div class="wk-tag" id="ws">星期-</div>
     </div>
 
@@ -184,7 +207,7 @@
       <a href="pdf.html" class="d-a"><span class="d-ic">📄</span><span class="d-tx">PDF转图</span></a>
       <a href="diff.html" class="d-a"><span class="d-ic">📝</span><span class="d-tx">文本校对</span></a>
       <a href="date.html" class="d-a"><span class="d-ic">📅</span><span class="d-tx">日期计算</span></a>
-      <a href="convert.html" class="d-a"><span class="d-ic">💰</span><span class="d-tx">大写转换</span></a>
+      <a href="convert.html" class="d-a"><span class="d-ic">💰</span><span class="d-tx">大小写转换</span></a>
     </div>
   </div>
 
@@ -224,6 +247,7 @@
         if(hm!==lastH){
           lastH=hm;
           D.ck.innerHTML=hm.replace(':','<span class="t-col">:</span>');
+          D.ck.style.opacity='1';
           
           if(h!==cache.h){
             cache.h=h;
@@ -372,6 +396,8 @@
         setInterval(rC,HOUR);
       }
       
+      // 立即执行以加快首屏时间
+      upd();
       document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
     })();
   </script>
